@@ -15,3 +15,5 @@ pub trait IniStruct<T> {
     /// Convert this struct to an INI string.
     fn to_ini(&self) -> String;
 }
+
+
