@@ -1,0 +1,12 @@
+[package]
+name = "rustini"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "rustini"
+path = "src/lib.rs"
+
+[dependencies]
+rustini-core = { path = "rustini-core" }
+rustini-derive = { path = "rustini-derive" }
