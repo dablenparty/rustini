@@ -17,7 +17,7 @@ fn ini_struct_derive_impl(input: TokenStream) -> TokenStream {
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
     let (from_impl, to_impl) = match &ast.data {
         syn::Data::Struct(st) if matches!(&st.fields, syn::Fields::Named(_)) => {
-            let (field_names, field_types) = st
+            let (field_idents, field_types) = st
                 .fields
                 .iter()
                 .filter_map(|f| f.ident.as_ref().map(|ident| (ident, &f.ty)).clone())
@@ -36,12 +36,12 @@ fn ini_struct_derive_impl(input: TokenStream) -> TokenStream {
                     .collect::<Result<::std::collections::HashMap<_, _>, ::rustini_core::anyhow::Error>>()?;
                 Ok(Self {
                     #(
-                        #field_names: pairs
-                            .get(stringify!(#field_names))
+                        #field_idents: pairs
+                            .get(stringify!(#field_idents))
                             .ok_or(::rustini_core::anyhow::anyhow!("missing key"))?
-                            .ok_or(::rustini_core::anyhow::anyhow!("missing value for key: {}", stringify!(#field_names)))?
+                            .ok_or(::rustini_core::anyhow::anyhow!("missing value for key: {}", stringify!(#field_idents)))?
                             .parse::<#field_types>()
-                            .map_err(|_| ::rustini_core::anyhow::anyhow!("invalid value for key: {}", stringify!(#field_names)))?
+                            .map_err(|_| ::rustini_core::anyhow::anyhow!("invalid value for key: {}", stringify!(#field_idents)))?
                     ),*
                 })
             };
