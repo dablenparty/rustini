@@ -1,6 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use std::{fmt::Display, num::FpCategory, str::FromStr};
+use std::{fmt::Display, str::FromStr};
 
 pub use anyhow;
 pub use thiserror;
@@ -28,9 +28,17 @@ pub enum IniValue {
     String(String),
 }
 
+#[derive(Debug, thiserror::Error)]
+pub enum IniValueError {
+    #[error("failed to parse boolean: {0}")]
+    BadBooleanFormat(#[from] std::str::ParseBoolError),
+    #[error("misquoted string: {0}")]
+    MisquotedString(String),
+}
+
 impl FromStr for IniValue {
     // TODO: custom error type with thiserror
-    type Err = anyhow::Error;
+    type Err = IniValueError;
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let s = s.trim();
@@ -42,7 +50,7 @@ impl FromStr for IniValue {
             }
             ['"', ..] | ['\'', ..] | [.., '"'] | [.., '\''] => {
                 // TODO: custom error type with thiserror
-                Err(anyhow::anyhow!("unterminated string"))
+                Err(IniValueError::MisquotedString(s.to_string()))
             }
             ['t', 'r', 'u', 'e'] | ['f', 'a', 'l', 's', 'e'] => s
                 .parse::<bool>()
@@ -50,11 +58,8 @@ impl FromStr for IniValue {
                 .map_err(Into::into),
             _ => {
                 if let Ok(f) = s.parse::<f64>() {
-                    if let FpCategory::Nan | FpCategory::Infinite = f.classify() {
-                        todo!("custom error handling for NaN/inf");
-                    }
-                    if f.fract() == 0.0 {
-                        if f >= 0.0 {
+                    if f.is_normal() && f.fract() == 0.0 {
+                        if f.is_sign_positive() {
                             Ok(IniValue::PosInt(f as u64))
                         } else {
                             Ok(IniValue::NegInt(f as i64))

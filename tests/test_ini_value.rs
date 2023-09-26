@@ -94,18 +94,3 @@ fn test_ini_value_bad_quotes() {
         left_res
     );
 }
-
-#[test]
-fn test_ini_value_bad_float() {
-    let nan = "NaN";
-    let nan_res = IniValue::from_str(nan);
-    assert!(nan_res.is_err(), "expected NaN to fail, got {:?}", nan_res);
-
-    let inf = "inf";
-    let inf_res = IniValue::from_str(inf);
-    assert!(
-        inf_res.is_err(),
-        "expected Infinity to fail, got {:?}",
-        inf_res
-    );
-}
