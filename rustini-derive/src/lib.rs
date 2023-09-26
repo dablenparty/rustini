@@ -22,6 +22,7 @@ fn ini_struct_derive_impl(input: TokenStream) -> TokenStream {
                 .iter()
                 .filter_map(|f| f.ident.as_ref().map(|ident| (ident, &f.ty)).clone())
                 .unzip::<_, _, Vec<_>, Vec<_>>();
+            // TODO: sections
             // TODO: this error handling is GOD AWFUL and the expansion is ugly
             let from_impl = quote! {
                 let ini = ini.as_ref();
@@ -46,7 +47,11 @@ fn ini_struct_derive_impl(input: TokenStream) -> TokenStream {
                 })
             };
             let to_impl = quote! {
-                todo!()
+                let mut lines = Vec::new();
+                #(
+                    lines.push(format!("{} = {}", stringify!(#field_idents), self.#field_idents));
+                )*
+                lines.join("\n")
             };
             (from_impl, to_impl)
         }
