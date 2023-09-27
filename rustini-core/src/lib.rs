@@ -1,6 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use std::{fmt::Display, str::FromStr};
+use std::{collections::HashMap, fmt::Display, str::FromStr};
 
 pub use anyhow;
 pub use thiserror;
@@ -16,6 +16,38 @@ pub trait IniStruct<T> {
 
     /// Convert this struct to an INI string.
     fn to_ini(&self) -> String;
+}
+
+// TODO: make this a derive macro (there's a good guide online)
+impl IniStruct<HashMap<String, String>> for HashMap<String, String> {
+    type Error = anyhow::Error;
+
+    fn from_ini<S>(ini: S) -> Result<HashMap<String, String>, Self::Error>
+    where
+        S: AsRef<str>,
+    {
+        ini.as_ref()
+            .lines()
+            .map(|line| {
+                let mut parts = line.splitn(2, '=');
+                let key = parts.next().ok_or(anyhow::anyhow!("missing key"))?.trim();
+                let value = parts.next().map(|s| s.trim().to_string());
+                Ok((key, value))
+            })
+            .filter_map(|pair| match pair {
+                Ok((k, Some(v))) => Some(Ok((k.to_string(), v))),
+                Err(e) => Some(Err(e)),
+                _ => None,
+            })
+            .collect::<Result<::std::collections::HashMap<_, _>, _>>()
+    }
+
+    fn to_ini(&self) -> String {
+        self.iter()
+            .map(|(k, v)| format!("{k} = {v}"))
+            .collect::<Vec<_>>()
+            .join("\n")
+    }
 }
 
 /// Represents a value in an INI file. Idea credit to `serde_json`.
@@ -34,6 +66,64 @@ pub enum IniValueError {
     BadBooleanFormat(#[from] std::str::ParseBoolError),
     #[error("misquoted string: {0}")]
     MisquotedString(String),
+    #[error("tried to parse wrong type for enum variant: {0}")]
+    WrongType(IniValue),
+}
+
+// TODO: consider making these TryFrom impls a derive macro iterating over the variants
+impl TryFrom<IniValue> for bool {
+    type Error = IniValueError;
+
+    fn try_from(value: IniValue) -> Result<Self, Self::Error> {
+        match value {
+            IniValue::Bool(b) => Ok(b),
+            _ => Err(IniValueError::WrongType(value)),
+        }
+    }
+}
+
+impl TryFrom<IniValue> for f64 {
+    type Error = IniValueError;
+
+    fn try_from(value: IniValue) -> Result<Self, Self::Error> {
+        match value {
+            IniValue::Float(f) => Ok(f),
+            _ => Err(IniValueError::WrongType(value)),
+        }
+    }
+}
+
+impl TryFrom<IniValue> for u64 {
+    type Error = IniValueError;
+
+    fn try_from(value: IniValue) -> Result<Self, Self::Error> {
+        match value {
+            IniValue::PosInt(i) => Ok(i),
+            _ => Err(IniValueError::WrongType(value)),
+        }
+    }
+}
+
+impl TryFrom<IniValue> for i64 {
+    type Error = IniValueError;
+
+    fn try_from(value: IniValue) -> Result<Self, Self::Error> {
+        match value {
+            IniValue::NegInt(i) => Ok(i),
+            _ => Err(IniValueError::WrongType(value)),
+        }
+    }
+}
+
+impl TryFrom<IniValue> for String {
+    type Error = IniValueError;
+
+    fn try_from(value: IniValue) -> Result<Self, Self::Error> {
+        match value {
+            IniValue::String(s) => Ok(s),
+            _ => Err(IniValueError::WrongType(value)),
+        }
+    }
 }
 
 impl FromStr for IniValue {
