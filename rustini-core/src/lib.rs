@@ -5,21 +5,25 @@ use std::collections::HashMap;
 pub use anyhow;
 pub use thiserror;
 
-/// Trait for converting between an INI file and a struct.
-pub trait IniStruct<T> {
+/// Converts an INI string into a Rust struct.
+pub trait FromIni<T> {
     type Error;
 
-    /// Convert an INI string to a struct.
     fn from_ini<S>(ini: S) -> Result<T, Self::Error>
     where
         S: AsRef<str>;
+}
 
-    /// Convert this struct to an INI string.
-    fn to_ini(&self) -> String;
+/// Converts a Rust struct into an INI string. All members of the struct must also implement
+/// `ToIni` for this to work.
+pub trait ToIni {
+    fn to_ini(&self) -> String
+    where
+        Self: Sized;
 }
 
 // TODO: make this a derive macro (there's a good guide online)
-impl IniStruct<HashMap<String, String>> for HashMap<String, String> {
+impl FromIni<HashMap<String, String>> for HashMap<String, String> {
     type Error = anyhow::Error;
 
     fn from_ini<S>(ini: S) -> Result<HashMap<String, String>, Self::Error>
@@ -41,7 +45,9 @@ impl IniStruct<HashMap<String, String>> for HashMap<String, String> {
             })
             .collect::<Result<::std::collections::HashMap<_, _>, _>>()
     }
+}
 
+impl ToIni for HashMap<String, String> {
     fn to_ini(&self) -> String {
         self.iter()
             .map(|(k, v)| format!("{k} = {v}"))
