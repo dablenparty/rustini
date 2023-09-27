@@ -35,7 +35,13 @@ impl FromIni<HashMap<String, String>> for HashMap<String, String> {
             .map(|line| {
                 let mut parts = line.splitn(2, '=');
                 let key = parts.next().ok_or(anyhow::anyhow!("missing key"))?.trim();
-                let value = parts.next().map(|s| s.trim().to_string());
+                let value = parts.next().map(|s| s.trim().to_string()).and_then(|s| {
+                    if s.is_empty() {
+                        None
+                    } else {
+                        Some(s)
+                    }
+                });
                 Ok((key, value))
             })
             .filter_map(|pair| match pair {
@@ -43,7 +49,7 @@ impl FromIni<HashMap<String, String>> for HashMap<String, String> {
                 Err(e) => Some(Err(e)),
                 _ => None,
             })
-            .collect::<Result<::std::collections::HashMap<_, _>, _>>()
+            .collect()
     }
 }
 
