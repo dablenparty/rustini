@@ -81,30 +81,31 @@ fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
         const MAP_NAME: &str = "pairs";
         let map_name_ident = syn::Ident::new(MAP_NAME, proc_macro2::Span::call_site());
 
-        let optional_from_defs = optional_fields.iter().map(|(ident, ty)| {
-            let inner_ty = extract_option_type(ty).unwrap_or_else(|| {
-                abort_call_site!(
-                    "expected Option<T> for field {}, found {}",
-                    ident,
-                    stringify!(ty)
-                )
-            });
-            quote! {
-                let #ident = #map_name_ident
-                    .remove(stringify!(#ident))
-                    .map(|s| #inner_ty::from_ini(s))
-                    .transpose()
-                    .map_err(|_| ::rustini_core::anyhow::anyhow!("invalid value for key: {}", stringify!(#ident)))?;
-            }
-        }).collect::<Vec<_>>();
+        let optional_from_defs = optional_fields
+            .iter()
+            .map(|(ident, ty)| {
+                let inner_ty = extract_option_type(ty).unwrap_or_else(|| {
+                    abort_call_site!(
+                        "expected Option<T> for field {}, found {}",
+                        ident,
+                        stringify!(ty)
+                    )
+                });
+                quote! {
+                    let #ident = #map_name_ident
+                        .remove(stringify!(#ident))
+                        .map(|s| #inner_ty::from_ini(s))
+                        .transpose()?;
+                }
+            })
+            .collect::<Vec<_>>();
 
         let req_from_defs = required_fields.iter().map(|(ident, ty)| {
             quote! {
                 let #ident: #ty = #map_name_ident
                     .remove(stringify!(#ident))
                     .map(|s| #ty::from_ini(s))
-                    .ok_or(::rustini_core::anyhow::anyhow!("missing required field: {}", stringify!(#ident)))?
-                    .map_err(|_| ::rustini_core::anyhow::anyhow!("invalid value for key: {}", stringify!(#ident)))?;
+                    .ok_or(::rustini_core::anyhow::anyhow!("missing required field: {}", stringify!(#ident)))??;
             }
         }).collect::<Vec<_>>();
 
