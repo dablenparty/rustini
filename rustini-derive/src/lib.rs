@@ -92,7 +92,7 @@ fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
             quote! {
                 let #ident = #map_name_ident
                     .remove(stringify!(#ident))
-                    .map(|s| s.parse::<#inner_ty>())
+                    .map(|s| #inner_ty::from_ini(s))
                     .transpose()
                     .map_err(|_| ::rustini_core::anyhow::anyhow!("invalid value for key: {}", stringify!(#ident)))?;
             }
@@ -102,8 +102,8 @@ fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
             quote! {
                 let #ident: #ty = #map_name_ident
                     .remove(stringify!(#ident))
+                    .map(|s| #ty::from_ini(s))
                     .ok_or(::rustini_core::anyhow::anyhow!("missing required field: {}", stringify!(#ident)))?
-                    .parse::<#ty>()
                     .map_err(|_| ::rustini_core::anyhow::anyhow!("invalid value for key: {}", stringify!(#ident)))?;
             }
         }).collect::<Vec<_>>();

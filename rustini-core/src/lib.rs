@@ -1,6 +1,6 @@
 #![warn(clippy::all, clippy::pedantic)]
 
-use std::collections::HashMap;
+use std::{collections::HashMap, str::FromStr};
 
 pub use anyhow;
 pub use thiserror;
@@ -55,3 +55,26 @@ impl ToIni for HashMap<String, String> {
             .join("\n")
     }
 }
+
+macro_rules! from_to_ini_impl {
+    ($($t:ty)*) => ($(
+        impl FromIni<$t> for $t where $t: FromStr {
+            type Error = anyhow::Error;
+
+            fn from_ini<S>(ini: S) -> Result<$t, Self::Error>
+            where
+                S: AsRef<str>,
+            {
+                ini.as_ref().parse::<$t>().map_err(|e| anyhow::anyhow!(e))
+            }
+        }
+
+        impl ToIni for $t where $t: ToString {
+            fn to_ini(&self) -> String {
+                self.to_string()
+            }
+        }
+    )*)
+}
+
+from_to_ini_impl!(bool i8 i16 i32 i64 i128 isize u8 u16 u32 u64 u128 usize f32 f64 String);
