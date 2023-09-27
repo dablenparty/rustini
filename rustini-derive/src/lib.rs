@@ -61,6 +61,9 @@ fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
         ..
     }) = &ast.data
     {
+        if struct_fields.named.len() == 0 {
+            abort_call_site!("FromIni can only be derived for structs with named fields")
+        }
         let (optional_fields, required_fields) = struct_fields
             .named
             .iter()
@@ -157,6 +160,9 @@ fn to_ini_derive_impl(input: TokenStream) -> TokenStream {
         ..
     }) = &ast.data
     {
+        if struct_fields.named.len() == 0 {
+            abort_call_site!("ToIni can only be derived for structs with named fields")
+        }
         let (optional_fields, required_fields) = struct_fields
             .named
             .iter()
