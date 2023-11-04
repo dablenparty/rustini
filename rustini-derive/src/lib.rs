@@ -53,6 +53,7 @@ fn extract_option_type(ty: &syn::Type) -> Option<&syn::Type> {
 }
 
 fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
+    const MAP_NAME: &str = "pairs";
     let ast = parse_macro_input!(input as DeriveInput);
     let name = &ast.ident;
     let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
@@ -61,13 +62,13 @@ fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
         ..
     }) = &ast.data
     {
-        if struct_fields.named.len() == 0 {
+        if struct_fields.named.is_empty() {
             abort_call_site!("FromIni can only be derived for structs with named fields")
         }
         let (optional_fields, required_fields) = struct_fields
             .named
             .iter()
-            .filter_map(|f| f.ident.as_ref().map(|ident| (ident, &f.ty)).clone())
+            .filter_map(|f| f.ident.as_ref().map(|ident| (ident, &f.ty)))
             .partition::<Vec<_>, _>(|(_, ty)| {
                 if let syn::Type::Path(syn::TypePath {
                     path: syn::Path { segments, .. },
@@ -81,7 +82,6 @@ fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
                 false
             });
 
-        const MAP_NAME: &str = "pairs";
         let map_name_ident = syn::Ident::new(MAP_NAME, proc_macro2::Span::call_site());
 
         let optional_from_defs = optional_fields
@@ -115,7 +115,7 @@ fn from_ini_derive_impl(input: TokenStream) -> TokenStream {
         let all_idents = struct_fields
             .named
             .iter()
-            .filter_map(|f| f.ident.as_ref().map(|ident| ident.clone()))
+            .filter_map(|f| f.ident.as_ref().cloned())
             .collect::<Vec<_>>();
 
         // TODO: sections
@@ -160,13 +160,13 @@ fn to_ini_derive_impl(input: TokenStream) -> TokenStream {
         ..
     }) = &ast.data
     {
-        if struct_fields.named.len() == 0 {
+        if struct_fields.named.is_empty() {
             abort_call_site!("ToIni can only be derived for structs with named fields")
         }
         let (optional_fields, required_fields) = struct_fields
             .named
             .iter()
-            .filter_map(|f| f.ident.as_ref().map(|ident| (ident, &f.ty)).clone())
+            .filter_map(|f| f.ident.as_ref().map(|ident| (ident, &f.ty)))
             .partition::<Vec<_>, _>(|(_, ty)| {
                 if let syn::Type::Path(syn::TypePath {
                     path: syn::Path { segments, .. },

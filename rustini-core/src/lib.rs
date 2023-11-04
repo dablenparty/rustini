@@ -9,6 +9,16 @@ pub use thiserror;
 pub trait FromIni<T> {
     type Error;
 
+    /// Converts an INI string into a Rust struct.
+    ///
+    /// # Arguments
+    ///
+    /// * `ini` - The INI string to convert.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error if the INI string is malformed or cannot be mapped
+    /// to the Rust struct.
     fn from_ini<S>(ini: S) -> Result<T, Self::Error>
     where
         S: AsRef<str>;
@@ -23,6 +33,7 @@ pub trait ToIni {
 }
 
 // TODO: make this a derive macro (there's a good guide online)
+#[allow(clippy::implicit_hasher)]
 impl FromIni<HashMap<String, String>> for HashMap<String, String> {
     type Error = anyhow::Error;
 
@@ -53,6 +64,7 @@ impl FromIni<HashMap<String, String>> for HashMap<String, String> {
     }
 }
 
+#[allow(clippy::implicit_hasher)]
 impl ToIni for HashMap<String, String> {
     fn to_ini(&self) -> String {
         self.iter()
